@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#151918">
+  <meta name="description" content="See the cost of your meeting in real time. A private, offline meeting cost calculator.">
+  <title>Meeting Cost Ticker</title>
+  <style>
+    :root { color-scheme: dark; --bg:#151918; --panel:#1d2220; --line:#343c37; --muted:#a3afa6; --ink:#f1f5ee; --accent:#d2f88a; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family:Arial,Helvetica,sans-serif; }
+    button,input { font:inherit; }
+    button { cursor:pointer; }
+    button:focus-visible,input:focus-visible { outline:3px solid var(--accent); outline-offset:5px; }
+    .shell { max-width:1280px; margin:auto; padding:32px 48px 24px; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:20px; padding-bottom:26px; border-bottom:1px solid var(--line); }
+    .brand { display:flex; align-items:center; gap:12px; font-weight:700; font-size:16px; letter-spacing:-.4px; }
+    .logo { width:34px; height:34px; border-radius:10px; background:var(--accent); color:var(--bg); display:grid; place-items:center; }
+    svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+    .private { color:var(--muted); font-size:12px; display:flex; align-items:center; gap:8px; }
+    .private svg { width:15px; height:15px; }
+    .intro { margin:40px 0 28px; display:flex; align-items:end; justify-content:space-between; gap:20px; }
+    .eyebrow { color:var(--accent); text-transform:uppercase; letter-spacing:2px; font-size:11px; font-weight:700; margin:0 0 12px; }
+    h1 { font-size:clamp(28px,4vw,42px); font-weight:500; letter-spacing:-1.7px; margin:0 0 12px; }
+    .intro p:last-child { color:var(--muted); font-size:14px; margin:0; line-height:1.6; }
+    .edition { color:#78867c; font:11px monospace; letter-spacing:1px; white-space:nowrap; padding-bottom:5px; }
+    .layout { display:grid; grid-template-columns:300px minmax(0,1fr); border:1px solid var(--line); border-radius:18px; overflow:hidden; }
+    .setup { padding:28px; background:var(--panel); border-right:1px solid var(--line); }
+    .section-label { display:flex; align-items:center; gap:9px; margin:0 0 30px; font-size:13px; font-weight:500; }
+    .section-label span { color:#86958a; font:11px monospace; }
+    label { display:block; font-size:13px; margin:0 0 10px; }
+    .input-wrap { display:flex; align-items:center; border:1px solid #475248; border-radius:8px; background:#181d1a; padding:0 14px; margin-bottom:9px; }
+    .input-wrap:focus-within { border-color:var(--accent); outline:2px solid var(--accent); outline-offset:3px; }
+    .input-wrap input:focus-visible { outline:none; }
+    .input-wrap svg,.prefix { color:var(--muted); flex-shrink:0; }
+    input { width:100%; min-width:0; background:transparent; border:0; color:var(--ink); padding:15px 12px; font-size:25px; font-variant-numeric:tabular-nums; outline:none; }
+    input:disabled { color:#a3afa6; cursor:not-allowed; }
+    .unit { font-size:11px; color:var(--muted); white-space:nowrap; }
+    .help { color:#89988d; font-size:11px; line-height:1.6; margin:0 0 26px; }
+    .rate { border-top:1px solid var(--line); padding-top:24px; margin-top:30px; }
+    .rate p { color:var(--muted); font-size:12px; margin:0 0 9px; }
+    .rate strong { color:var(--accent); font-weight:500; font-size:26px; letter-spacing:-.7px; }
+    .rate small { color:var(--muted); font-size:12px; }
+    .ticker { padding:28px 34px 24px; display:flex; flex-direction:column; min-width:0; }
+    .ticker-top { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .status { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:11px; border:1px solid var(--line); border-radius:20px; padding:7px 11px; }
+    .dot { width:6px; height:6px; background:#91a092; border-radius:50%; }
+    .status.running { color:var(--accent); border-color:#52643c; }
+    .running .dot { background:var(--accent); box-shadow:0 0 0 4px #d2f88a12; }
+    .fullscreen { background:none; color:var(--muted); border:0; padding:6px; border-radius:4px; }
+    .amount-area { text-align:center; padding:43px 0 26px; }
+    .counter-label { margin:0 0 14px; font-size:11px; letter-spacing:2px; color:var(--muted); text-transform:uppercase; }
+    .amount { font-size:clamp(50px,7.5vw,106px); line-height:1.15; font-weight:500; letter-spacing:-5px; font-variant-numeric:tabular-nums; white-space:nowrap; color:var(--accent); }
+    .amount .dollar { font-size:.52em; vertical-align:15%; margin-right:6px; color:#879b6d; }
+    .time { display:flex; align-items:center; justify-content:center; gap:9px; color:var(--muted); font:14px monospace; margin-top:19px; font-variant-numeric:tabular-nums; }
+    .time svg { width:16px; height:16px; }
+    .controls { display:flex; justify-content:center; gap:10px; margin:8px 0 24px; }
+    .controls button { display:flex; align-items:center; justify-content:center; gap:8px; border:1px solid #465047; border-radius:8px; background:transparent; color:var(--ink); padding:13px 18px; font-size:13px; font-weight:600; transition:background .15s; }
+    .controls button:hover:enabled { background:#313a32; }
+    .controls .primary { background:var(--accent); border-color:var(--accent); color:#1b2511; min-width:122px; }
+    .controls .primary:hover:enabled { background:#e0ffa9; }
+    .controls button:disabled { opacity:.35; cursor:default; }
+    .controls svg { width:15px; height:15px; }
+    .session-note { min-height:32px; text-align:center; font-size:11px; color:#8c9b90; line-height:1.5; margin:0; }
+    .metrics { display:grid; grid-template-columns:1fr 1fr; border-top:1px solid var(--line); padding-top:22px; margin-top:auto; gap:20px; }
+    .metric { text-align:center; }
+    .metric + .metric { border-left:1px solid var(--line); }
+    .metric span { display:block; color:var(--muted); font-size:11px; margin-bottom:8px; }
+    .metric strong { font-size:20px; font-weight:500; font-variant-numeric:tabular-nums; }
+    .error { color:#ffc6b0; font-size:12px; line-height:1.5; margin:0 0 14px; }
+    .bottom-note { margin:23px 0 0; padding:17px 20px; border:1px solid var(--line); border-radius:10px; display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12px; line-height:1.6; }
+    .bottom-note svg { color:var(--accent); flex-shrink:0; }
+    .bottom-note b { color:#dce4d9; font-weight:500; }
+    footer { display:flex; justify-content:space-between; gap:12px; color:#7c8b80; margin-top:28px; font-size:11px; }
+    footer span:last-child { font-family:monospace; }
+    :fullscreen { background:var(--bg); overflow:auto; }
+    :fullscreen .shell { max-width:1440px; }
+    @media(min-width:1400px) { .shell { padding-top:45px; } .intro { margin-top:52px; } .amount-area { padding-top:54px; } }
+    @media(max-width:760px) { .shell { padding:22px; } .layout { grid-template-columns:1fr; } .setup { border-right:0; border-bottom:1px solid var(--line); padding:24px; } .section-label { margin-bottom:22px; } .fields { display:grid; grid-template-columns:1fr 1fr; gap:18px; } .help { margin-bottom:0; } .rate { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:18px; margin-top:20px; } .rate p { margin:0; } .rate strong { font-size:23px; } .ticker { padding:24px; } .amount { font-size:clamp(46px,12vw,90px); letter-spacing:-3px; } .edition { display:none; } .intro { margin-top:30px; } .amount-area { padding-top:30px; } }
+    @media(max-width:420px) { .shell { padding:16px; } .private span { display:none; } .controls { gap:7px; } .controls button { padding:12px; } .controls .primary { min-width:100px; } .ticker { padding:20px 16px; } .setup { padding:22px 18px; } .fields { gap:12px; } input { font-size:22px; padding:13px 7px; } .input-wrap { padding:0 10px; } footer { font-size:10px; } }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div class="brand"><span class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7"/><path d="M12 9v4l3 2M9 2h6M12 2v4M18 6l2-2"/></svg></span> Meeting Cost Ticker</div>
+    <div class="private"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg><span>Private. Local. Distraction-free.</span></div>
+  </header>
+  <main>
+    <div class="intro"><div><p class="eyebrow">Make every minute count</p><h1>Good conversations. Real costs.</h1><p>A little perspective for your next meeting. Set your numbers and start the clock.</p></div><span class="edition">TIME IS A TEAM RESOURCE ↗</span></div>
+    <div class="layout">
+      <section class="setup" aria-labelledby="setup-title">
+        <h2 class="section-label" id="setup-title"><span>01 /</span> Meeting setup</h2>
+        <form id="setup-form">
+          <div class="fields">
+            <div><label for="people">People in the meeting</label><div class="input-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M17 4a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 4v3"/></svg><input id="people" type="number" min="1" max="100000" step="1" value="8" required inputmode="numeric"></div><p class="help">Include yourself, too.</p></div>
+            <div><label for="hourly">Hourly cost per person</label><div class="input-wrap"><span class="prefix">$</span><input id="hourly" type="number" min="0.01" max="1000000" step="0.01" value="75" required inputmode="decimal"><span class="unit">/ hr</span></div><p class="help">An average estimate is perfect. USD.</p></div>
+          </div>
+          <p class="error" id="error" role="alert" hidden></p>
+          <button type="submit" hidden>Start meeting</button>
+        </form>
+        <div class="rate"><p>Your team's burn rate</p><div><strong id="burn-rate">$10.00</strong><small> / min</small></div></div>
+      </section>
+      <section class="ticker" aria-label="Meeting cost counter">
+        <div class="ticker-top"><div class="status" id="status"><span class="dot"></span><span id="status-text" role="status">Ready when you are</span></div><button class="fullscreen" id="fullscreen" aria-label="Enter full screen" title="Full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M21 16v5h-5M3 16v5h5"/></svg></button></div>
+        <div class="amount-area"><p class="counter-label">Total meeting cost</p><div class="amount" id="amount" role="timer" aria-label="Total meeting cost in US dollars"><span class="dollar">$</span><span id="cost">0.00</span></div><div class="time"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg><span id="elapsed" aria-label="Elapsed meeting time">00:00:00</span><span>elapsed</span></div></div>
+        <div class="controls"><button class="primary" id="start" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7Z"/></svg><span id="start-label">Start</span></button><button id="pause" type="button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5v14M15 5v14"/></svg>Pause</button><button id="reset" type="button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10a9 9 0 1 1 2 9M3 4v6h6"/></svg>Reset</button></div>
+        <p class="session-note" id="session-note">Start the clock when your meeting begins.</p>
+        <div class="metrics"><div class="metric"><span>Cost per hour</span><strong id="total-hourly">$600.00</strong></div><div class="metric"><span>Cost per person so far</span><strong id="per-person">$0.00</strong></div></div>
+      </section>
+    </div>
+    <div class="bottom-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M8 14a6 6 0 1 1 8 0c-1 1-1 2-1 2H9s0-1-1-2Z"/></svg><span><b>Time well spent is worth it.</b> Use this as a gentle nudge to keep the conversation focused.</span></div>
+  </main>
+  <footer><span>No accounts. No tracking. Just the math.</span><span>PEOPLE × RATE × TIME</span></footer>
+</div>
+<script>
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const money = value => new Intl.NumberFormat('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}).format(value);
+  let state = 'idle', accumulated = 0, startedAt = 0, interval = null, count = 8, rate = 75;
+  function validInputs() {
+    return $('people').validity.valid && $('hourly').validity.valid;
+  }
+  function updateRates() {
+    if (!validInputs()) {
+      $('burn-rate').textContent = '—'; $('total-hourly').textContent = '—';
+      return;
+    }
+    count = Number($('people').value); rate = Number($('hourly').value);
+    $('burn-rate').textContent = '$' + money(count * rate / 60);
+    $('total-hourly').textContent = '$' + money(count * rate);
+    $('error').hidden = true;
+  }
+  function elapsedMs() { return accumulated + (state === 'running' ? performance.now() - startedAt : 0); }
+  function render() {
+    const ms = elapsedMs(), seconds = Math.floor(ms / 1000), cost = ms / 3600000 * count * rate;
+    const digits = money(cost);
+    $('cost').textContent = digits;
+    $('amount').style.fontSize = digits.length > 9 ? `clamp(24px, ${Math.max(2.4, 7.5 * 9 / digits.length)}vw, ${106 * 9 / digits.length}px)` : '';
+    $('per-person').textContent = '$' + money(cost / count);
+    $('elapsed').textContent = [Math.floor(seconds / 3600), Math.floor(seconds / 60) % 60, seconds % 60].map(n => String(n).padStart(2,'0')).join(':');
+  }
+  function controls() {
+    $('start').disabled = state === 'running'; $('pause').disabled = state !== 'running'; $('reset').disabled = state === 'idle';
+    $('people').disabled = $('hourly').disabled = state !== 'idle';
+    $('start-label').textContent = state === 'paused' ? 'Resume' : 'Start';
+    $('status').classList.toggle('running', state === 'running');
+    $('status-text').textContent = {idle:'Ready when you are', running:'Meeting in progress', paused:'Meeting paused'}[state];
+    $('session-note').textContent = {idle:'Start the clock when your meeting begins.', running:'The clock is running. Make this time count.', paused:'Take your time. The clock and cost are paused.'}[state];
+    if (state !== 'idle') $('session-note').textContent += ' Reset to edit setup.';
+  }
+  function start() {
+    if (state === 'running') return;
+    if (!validInputs()) {
+      $('error').textContent = 'Enter a whole number of people (1–100,000) and an hourly cost ($0.01–$1,000,000, up to 2 decimal places).';
+      $('error').hidden = false; $('setup-form').reportValidity(); return;
+    }
+    updateRates(); startedAt = performance.now(); state = 'running';
+    interval = setInterval(render, 1000); controls(); render(); $('pause').focus();
+  }
+  $('start').addEventListener('click', start);
+  $('setup-form').addEventListener('submit', event => { event.preventDefault(); start(); });
+  $('pause').addEventListener('click', () => {
+    if (state !== 'running') return;
+    accumulated = elapsedMs(); state = 'paused'; clearInterval(interval); controls(); render(); $('start').focus();
+  });
+  $('reset').addEventListener('click', () => {
+    clearInterval(interval); state = 'idle'; accumulated = 0; controls(); updateRates(); render(); $('start').focus();
+  });
+  $('people').addEventListener('input', updateRates); $('hourly').addEventListener('input', updateRates);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+  if (!document.documentElement.requestFullscreen) $('fullscreen').hidden = true;
+  $('fullscreen').addEventListener('click', async () => {
+    try { if (document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen(); }
+    catch { $('session-note').textContent = 'Full screen is unavailable in this browser. Try maximizing the window.'; }
+  });
+  document.addEventListener('fullscreenchange', () => $('fullscreen').setAttribute('aria-label', document.fullscreenElement ? 'Exit full screen' : 'Enter full screen'));
+  updateRates(); render();
+</script>
+</body>
+</html>
